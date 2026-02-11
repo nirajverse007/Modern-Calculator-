@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Modern Calculator</title>
 
+  <link rel="manifest" href="manifest.json">
+
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
   <style>
@@ -26,18 +28,7 @@
       width: 92vw;
       max-width: 380px;
       box-shadow: 0 15px 40px rgba(0,0,0,.7);
-      transform: scale(1.05);
-    }
-
-    select {
-      width:100%;
-      margin-bottom:10px;
-      padding:10px;
-      border-radius:8px;
-      background:#1D1C20;
-      color:white;
-      border:none;
-      font-family:Poppins;
+      transform: scale(1.1);
     }
 
     input {
@@ -72,34 +63,35 @@
       border: none;
       font-size: 22px;
       box-shadow: -4px -4px 8px rgba(255,255,255,0.08), 6px 6px 12px rgba(0,0,0,0.6);
+      
+      /* Mobile Fixes */
       -webkit-tap-highlight-color: transparent; 
       outline: none;
       cursor: default;
       transition: all 0.2s ease;
     }
 
+    /* 🔥 Hover ki jagah Active Glow (Mobile Friendly) */
     button:active {
       box-shadow: 0px 0px 15px rgba(0, 255, 144, 0.6);
       border: 1px solid #00ff90;
       transform: scale(0.92);
     }
 
-    .equal { background:#ff9800; color:black; font-weight:bold; }
+    .equal:active {
+      box-shadow: 0px 0px 15px rgba(255, 152, 0, 0.6);
+      border: 1px solid #ff9800;
+    }
+
     .add { color: #00ff90; font-size: 30px; }
     .clear { color: #00ff90; }
+    .equal { background:#ff9800; color:black; font-weight:bold; }
+
   </style>
 </head>
 
 <body>
   <div class="calc">
-
-    <select id="mode" onchange="changeMode()">
-      <option value="calc">🧮 Calculator</option>
-      <option value="USD-INR">💱 USD → INR</option>
-      <option value="INR-USD">💱 INR → USD</option>
-      <option value="WORLD">🌍 USD → EUR / GBP / JPY</option>
-    </select>
-
     <input type="text" id="res" readonly>
 
     <div class="btns">
@@ -132,18 +124,22 @@
 
 <script>
   const res = document.getElementById("res");
-  let mode = "calc";
 
-  function changeMode(){
-    mode = document.getElementById("mode").value;
-    res.value = "";
-    adjustFontSize();
-  }
+  // BACK BUTTON LOGIC (Isse app back button se cut hoga)
+  document.addEventListener("backbutton", function(e) {
+      e.preventDefault();
+      if (confirm("Kya aap Calculator band karna chahte hain?")) {
+          navigator.app.exitApp();
+      }
+  }, false);
 
   function adjustFontSize() {
-    let size = 54 - res.value.length * 2;
-    if(size < 22) size = 22;
-    res.style.fontSize = size + "px";
+    const maxFont = 54;
+    const minFont = 22;
+    let length = res.value.length;
+    let newSize = maxFont - (length * 2);
+    if (newSize < minFont) newSize = minFont;
+    res.style.fontSize = newSize + "px";
   }
 
   function press(val){
@@ -161,43 +157,19 @@
     adjustFontSize();
   }
 
-  async function calc(){
+  function calc(){
     try{
-      if(mode === "calc"){
-        let exp = res.value.replace(/%/g, '/100');
-        res.value = eval(exp);
-      } 
-      else if(mode === "USD-INR" || mode === "INR-USD"){
-        let amount = parseFloat(res.value);
-        if(isNaN(amount)) return;
-
-        let base = mode==="INR-USD" ? "INR" : "USD";
-        let target = mode==="INR-USD" ? "USD" : "INR";
-
-        let url = `https://api.exchangerate.host/latest?base=${base}&symbols=${target}`;
-        let r = await fetch(url);
-        let data = await r.json();
-        res.value = (amount * data.rates[target]).toFixed(2);
-      } 
-      else if(mode === "WORLD"){
-        let amount = parseFloat(res.value);
-        if(isNaN(amount)) return;
-
-        let url = `https://api.exchangerate.host/latest?base=USD&symbols=EUR,GBP,JPY`;
-        let r = await fetch(url);
-        let data = await r.json();
-
-        res.value =
-          "EUR: " + (amount * data.rates.EUR).toFixed(2) +
-          " | GBP: " + (amount * data.rates.GBP).toFixed(2) +
-          " | JPY: " + (amount * data.rates.JPY).toFixed(2);
-      }
-
+      let exp = res.value.replace(/%/g, '/100');
+      res.value = eval(exp);
       adjustFontSize();
     }catch{
       res.value = "Error";
       adjustFontSize();
     }
+  }
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js");
   }
 </script>
 </body>
